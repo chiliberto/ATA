@@ -1,0 +1,10 @@
+settings =
+{
+        iphone =
+    {
+            plist=
+            {
+                UIPrerenderedIcon=true,
+            },
+    },
+}
