@@ -4,20 +4,60 @@
 
 --import external classes
 local ui = require("ui")
-
---import external classes
-local ui = require("ui")
+local util = require("util")
 local viewController = require("viewController")
 
-local mainView, tabView, currentScreen, tabBar
-	
+local mainView, tabView, currentScreen, lastScreen, lastDetailID, tabBar
+
+local function restorePreviousState()
+	--#restore previous state, if any
+	local path = system.pathForFile( "tmp.txt", system.DocumentsDirectory )		
+	local file = io.open( path, "r" )
+	local prevState
+	if file then
+		local contents = file:read( "*a" )
+		prevState = util.explode(", ", contents)
+								
+		io.close( file )
+	end
+	if prevState[1] ~= "" then
+		loadScreen(prevState[1])
+		if prevState[2] then
+			print("loading previous id: ".. prevState[2])
+			currentScreen:showDetailScreen( prevState[2] )
+		end
+	else
+		loadScreen("Calendar")
+	end
+end
+
+local function savePreviousState()
+	local detailID = currentScreen.detailID
+
+	-- save states
+	local path = system.pathForFile( "tmp.txt", system.DocumentsDirectory )		
+	local file = io.open( path, "w+b" )
+	file:write( lastScreen ..", ".. detailID) 		
+	io.close( file )
+end
+
+local function onSystemEvent( event )
+	print("event.type: ".. event.type)
+
+	if event.type == "applicationStart" then	
+		restorePreviousState()		
+	elseif( event.type == "applicationExit" or event.type == "applicationSuspend" ) then
+		savePreviousState()
+	end
+end
+
 local function init(event)
 	mainView = display.newGroup()	
 
 	tabView = display.newGroup()	
 	mainView:insert(tabView)
 
-	loadScreen("Calendar")
+	--loadScreen("Calendar")
 	
 	tabBar = viewController.newTabBar{ 
 			background = "tabBar.png", 
@@ -30,6 +70,9 @@ local function init(event)
 	mainView:insert(tabBar)
 		
 	tabBar.selected()
+
+	--Check for system events to save state variables
+	Runtime:addEventListener( "system", onSystemEvent )
 end
 
 function showScreen(event)
@@ -37,8 +80,14 @@ function showScreen(event)
 	local phase = event.phase
 	 
 	if phase == "ended" then 
+		if lastScreen == "Calendar" then
+			lastDetailID = currentScreen.detailID
+			print(lastDetailID)
+		end
+	
 		if t.id == 1 then
 			loadScreen("Calendar")
+			if lastDetailID then currentScreen:showDetailScreen( lastDetailID ) end
 		elseif t.id == 2 then
 			loadScreen("About")
 		elseif t.id == 3 then
@@ -57,6 +106,9 @@ function loadScreen(newScreen)
 	end
 	currentScreen = require(newScreen).new()
 	tabView:insert(currentScreen)
+	
+	--Save the screen name for the previous state variables
+	lastScreen = newScreen
 	
 	return true
 end

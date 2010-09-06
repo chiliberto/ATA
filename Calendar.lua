@@ -15,8 +15,8 @@ function new()
 	local docDir = system.DocumentsDirectory
 	local xmlFile = "ATAiPhoneRSS.xml"
 	local dataURL = "http://atasite.org/xml/".. xmlFile	
-	local detailID, detailScreen, detailDate, detailTitle, imageDir 
-	local doLoadXML, connectionMade, newerXMLReady
+	local detailScreen, detailDate, detailTitle, imageDir, lastDetailID
+	local doLoadXML, connectionMade, newerXMLReady, dataWasUpdated
 
 	local data = {} 
 	local prevImages = {}
@@ -26,7 +26,7 @@ function new()
 	--Setup the main screen group
 	local g = display.newGroup()
 	
-	local function showDetails()											
+	local function showDetails(detailID)		
 		detailScrollView:remove(detailDate)
 		local t = data[detailID].eventDateValue .. data[detailID].eventInfoValue
 		detailDate = util.wrappedText( t, 52, 13, "Helvetica", {255,255,255} )       
@@ -84,6 +84,7 @@ function new()
 	
 		--detailScreen.x = calendarScreen.x + calendarScreen.width
 		detailScrollView.y = display.screenOriginY
+		g.detailID = detailID
 		
 	end
 
@@ -96,14 +97,14 @@ function new()
 	end
 	
 	local function listButtonRelease( event )
-		self = event.target
+		local self = event.target
 		local id = self.id
-		detailID = self.id
+		local detailID = self.id
 		
 		if event.target.data.categoryValue == "Sponsors" then
 			system.openURL( event.target.data.permalinkValue )
 		else
-			showDetails()
+			showDetails(detailID)
 					
 			transition.to(myList, {time=400, x=-screenW, transition=easing.outExpo })
 			transition.to(detailScreen, {time=400, x=0, transition=easing.outExpo })
@@ -196,36 +197,6 @@ function new()
 
 	end
 
-	local function onSystemEvent( event )
-		print("event.type: ".. event.type)
-	
-		if( event.type == "applicationExit" or event.type == "applicationSuspend" ) then
-			print("exiting...")
-
-			--###  need to add some code to grab the relevant values to save out  ###--
-						
-			-- save states
-			local path = system.pathForFile( "tmp.txt", docDir )		
-			local file = io.open( path, "w+b" )
-			file:write( currentTargetVal ..", ".. currentTarget.y ..", ".. calendarScreen.x ..", ".. detailScreen.x ..", ".. detailID) 		
-			io.close( file )
-		end
-	end
-	
-	local function restorePreviousState()
-		--#restore previous state, if any
-		local prevStatePath = system.pathForFile( "tmp.txt", docDir )		
-		local prevStateFile = io.open( prevStatePath, "r" )
-		if file then
-			local contents = prevStateFile:read( "*a" )
-			local prevState = util.explode(", ", contents)
-							
-			--### need to add some code here to grab previous state variables  ###--
-						
-			io.close( prevStateFile )
-		end
-	end
-
 	local function updateXML()	
 		--store previous images in an array
 		local path = system.pathForFile( xmlFile, docDir ) --default xml file path
@@ -253,6 +224,7 @@ function new()
 			http.request{ url = dataURL, sink = ltn12.sink.file(file) }
 					
 			doLoadXML = true
+			dataWasUpdated = true
 		end
 	end
 			
@@ -372,7 +344,7 @@ function new()
 		dataTable = nil --kill the array storing data to free up memory	
 	end
 	
-	function setupDetailScreen()			
+	local function setupDetailScreen()			
 		--setup a destination for the list items
 		detailScreen = display.newGroup()
 		detailScrollView = scrollView.new{ top=display.screenOriginY, bottom=80 }
@@ -406,7 +378,7 @@ function new()
 		g:insert(1, detailScreen)
 	end
 	
-	function setupNav()	
+	local function setupNav()	
 		local headerBg = display.newRect(0,0,screenW,display.statusBarHeight)
 		headerBg:setFillColor(0,0,0)
 		headerBg.y = math.floor(display.screenOriginY + headerBg.height*0.5)
@@ -438,7 +410,7 @@ function new()
 		g:insert(backBtn)
 	end	
 		
-	function setupLoop()
+	local function setupLoop()
 		if remoteXMLNewer then
 			remoteXMLNewer = false
 			
@@ -455,10 +427,7 @@ function new()
 				
 				print("Setting up calendar...")
 				setupCalendar()	
-				
-				--print("Restoring previous state...")
-				--restorePreviousState()
-								
+												
 				print("Checking for update...")
 				checkForUpdate()
 			else
@@ -466,15 +435,29 @@ function new()
 				native.setActivityIndicator( false )
 
 				print("Setup done!")
-				Runtime:removeEventListener("enterFrame", setupLoop)
+				Runtime:removeEventListener("enterFrame", setupLoop)				
+				
+				if lastDetailID then
+					print("found previous id: ".. lastDetailID)
+					if not dataWasUpdated then
+						showDetails(lastDetailID)
+						transition.to(myList, {time=400, x=-screenW, transition=easing.outExpo })
+						transition.to(detailScreen, {time=400, x=0, transition=easing.outExpo })
+						transition.to(backBtn, {time=400, x=math.floor(backBtn.width*0.5) + screenOffsetW*.5, transition=easing.outExpo })
+						transition.to(backBtn, {time=400, alpha=1 })		
+						delta, velocity = 0, 0
+					else
+						print("data was updated recently")
+					end
+				end
+				
 			end
 		end
 
 	end	
 
-	function init()
+	local function init()
 		doLoadXML = true
-		detailID = 1
 	    imageDir = docDir
 
 		setupNav()		
@@ -485,9 +468,11 @@ function new()
 		
 		--Start the setup loop
 		Runtime:addEventListener("enterFrame", setupLoop)
-
-		--Check for system events to save state variables
-		--Runtime:addEventListener( "system", onSystemEvent )
+	end
+	
+	function g:showDetailScreen(detailID)
+		print("showing id: ".. detailID)
+		lastDetailID = tonumber(detailID)
 	end
 	
 	function g:cleanUp()
