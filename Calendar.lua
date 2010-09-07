@@ -10,13 +10,13 @@ local screenW, screenH = display.contentWidth, display.contentHeight
 local viewableScreenW, viewableScreenH = display.viewableContentWidth, display.viewableContentHeight
 local screenOffsetW, screenOffsetH = display.contentWidth -  display.viewableContentWidth, display.contentHeight - display.viewableContentHeight
 
-function new()
+function new(firstRun)
 	local resDir = system.ResourceDirectory
 	local docDir = system.DocumentsDirectory
 	local xmlFile = "ATAiPhoneRSS.xml"
 	local dataURL = "http://atasite.org/xml/".. xmlFile	
-	local detailScreen, detailDate, detailTitle, imageDir, lastDetailID
-	local doLoadXML, connectionMade, newerXMLReady, dataWasUpdated
+	local detailScreen, detailDate, detailTitle, imageDir, lastDetailID, lastY
+	local doCheckForUpdate, connectionMade, newerXMLReady, dataWasUpdated
 
 	local data = {} 
 	local prevImages = {}
@@ -94,6 +94,7 @@ function new()
 		transition.to(backBtn, {time=400, x=math.floor(backBtn.width*0.5)+backBtn.width, transition=easing.outExpo })
 		transition.to(backBtn, {time=400, alpha=0 })
 		delta, velocity = 0, 0
+		g.detailID = nil
 	end
 	
 	local function listButtonRelease( event )
@@ -114,11 +115,12 @@ function new()
 		end
 	end
 
-	local function setupCalendar()
+	local function setupCalendarList()
 		--specify the order for the groups in each category
 		local headers = { "This Week", "Upcoming", "Gallery and Window Installations", "Sponsors" }
 		
 		if myList then myList:removeSelf()	end
+		
 		-- Create a list with header titles
 		myList = tableView.newList{
 			data=data, 
@@ -223,7 +225,7 @@ function new()
 			local ltn12 = require("ltn12")
 			http.request{ url = dataURL, sink = ltn12.sink.file(file) }
 					
-			doLoadXML = true
+			doCheckForUpdate = true
 			dataWasUpdated = true
 		end
 	end
@@ -416,18 +418,19 @@ function new()
 			
 			print("Updating XML...")
 			updateXML()			
+
+			print("Loading XML...")
+			loadXML()			
+			
+			print("Loading images...")
+			loadImages()
+			
+			print("Setting up calendar...")
+			setupCalendarList()	
 		else 
-			if doLoadXML then
-				doLoadXML = false 
-				print("Loading XML...")
-				loadXML()			
+			if doCheckForUpdate then
+				doCheckForUpdate = false 
 				
-				print("Loading images...")
-				loadImages()
-				
-				print("Setting up calendar...")
-				setupCalendar()	
-												
 				print("Checking for update...")
 				checkForUpdate()
 			else
@@ -437,17 +440,24 @@ function new()
 				print("Setup done!")
 				Runtime:removeEventListener("enterFrame", setupLoop)				
 				
-				if lastDetailID then
-					print("found previous id: ".. lastDetailID)
-					if not dataWasUpdated then
-						showDetails(lastDetailID)
-						transition.to(myList, {time=400, x=-screenW, transition=easing.outExpo })
-						transition.to(detailScreen, {time=400, x=0, transition=easing.outExpo })
-						transition.to(backBtn, {time=400, x=math.floor(backBtn.width*0.5) + screenOffsetW*.5, transition=easing.outExpo })
-						transition.to(backBtn, {time=400, alpha=1 })		
-						delta, velocity = 0, 0
-					else
-						print("data was updated recently")
+				if dataWasUpdated then
+					print("data was updated recently")
+					myList.x = 0
+					detailScreen.x = detailScreen.width
+					backBtn.x = math.floor(backBtn.width*0.5)+backBtn.width
+					backBtn.alpha = 0
+					g.detailID = nil
+				else
+					if lastDetailID then
+							showDetails(lastDetailID)
+							myList.x = -screenW
+							detailScreen.x = 0
+							backBtn.x = math.floor(backBtn.width*0.5) + screenOffsetW*.5
+							backBtn.alpha = 1
+					end
+					
+					if lastY then
+						myList.y = lastY
 					end
 				end
 				
@@ -457,22 +467,38 @@ function new()
 	end	
 
 	local function init()
-		doLoadXML = true
+		doCheckForUpdate = true
 	    imageDir = docDir
 
 		setupNav()		
 		setupDetailScreen()
+		loadXML()			
+		loadImages()
+		setupCalendarList()	
 
-		-- Start the activity indicator
-		native.setActivityIndicator( true )			
+		if firstRun then		
+			-- Start the activity indicator
+			native.setActivityIndicator( true )			
 		
-		--Start the setup loop
-		Runtime:addEventListener("enterFrame", setupLoop)
+			--Start the setup loop
+			Runtime:addEventListener("enterFrame", setupLoop)
+		end
 	end
 	
 	function g:showDetailScreen(detailID)
-		print("showing id: ".. detailID)
 		lastDetailID = tonumber(detailID)
+		showDetails(lastDetailID)
+		myList.x = -screenW
+		detailScreen.x = 0
+		backBtn.x = math.floor(backBtn.width*0.5) + screenOffsetW*.5
+		backBtn.alpha = 1
+	end
+
+	function g:scrollTo(yVal)
+		if yVal then
+			lastY = tonumber(yVal)
+			myList.y = lastY
+		end
 	end
 	
 	function g:cleanUp()

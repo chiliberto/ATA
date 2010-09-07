@@ -10,7 +10,7 @@ local viewableScreenW, viewableScreenH = display.viewableContentWidth, display.v
 local screenOffsetW, screenOffsetH = display.contentWidth -  display.viewableContentWidth, display.contentHeight - display.viewableContentHeight
 
 
-function new()
+function new(param)
 	local g = display.newGroup()
 
 	-- Setup a scrollable content group
