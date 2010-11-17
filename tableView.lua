@@ -1,14 +1,35 @@
--- tableView.lua Table View Library
--- Version 1.2
+-- tableView.lua, Table View Library
+--
+-- Version 1.3
+--
+-- Copyright (C) 2010 ANSCA Inc. All Rights Reserved.
+--
+-- Permission is hereby granted, free of charge, to any person obtaining a copy of 
+-- this software and associated documentation files (the "Software"), to deal in the 
+-- Software without restriction, including without limitation the rights to use, copy, 
+-- modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+-- and to permit persons to whom the Software is furnished to do so, subject to the 
+-- following conditions:
+-- 
+-- The above copyright notice and this permission notice shall be included in all copies 
+-- or substantial portions of the Software.
+-- 
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+-- INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
+-- PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
+-- FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
+-- OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+-- DEALINGS IN THE SOFTWARE.
+
  
 module(..., package.seeall)
  
 --properties
- 
-local currentTarget, detailScreen, velocity, currentDefault, currentOver, prevY
-local screenW, screenH = display.contentWidth, display.contentHeight
+ local screenW, screenH = display.contentWidth, display.contentHeight
 local viewableScreenW, viewableScreenH = display.viewableContentWidth, display.viewableContentHeight
 local screenOffsetW, screenOffsetH = display.contentWidth -  display.viewableContentWidth, display.contentHeight - display.viewableContentHeight
+
+local currentTarget, detailScreen, velocity, currentDefault, currentOver, prevY
 local startTime, lastTime, prevTime = 0, 0, 0
  
 --methods
@@ -94,6 +115,7 @@ function newListItemHandler(self, event)
         
                 -- Only consider this a "click", if the user lifts their finger inside button's stageBounds
                 if isWithinBounds and (dragDistance < 10 and dragDistance > -10 ) then
+					velocity = 0
                     result = self.onRelease(event)
                 end
  

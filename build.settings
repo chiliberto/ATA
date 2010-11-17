@@ -1,10 +1,14 @@
 settings =
 {
-        iphone =
+    iphone =
     {
             plist=
             {
                 UIPrerenderedIcon=true,
             },
     },
+    androidPermissions = 
+    {
+    	"android.permission.INTERNET"
+    }
 }

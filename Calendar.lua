@@ -1,27 +1,17 @@
 module(..., package.seeall)
 
---import external classes
-local tableView = require("tableView")
-local util = require("util")
-local scrollView = require("scrollView")
-
---initial values
-local screenW, screenH = display.contentWidth, display.contentHeight
-local viewableScreenW, viewableScreenH = display.viewableContentWidth, display.viewableContentHeight
-local screenOffsetW, screenOffsetH = display.contentWidth -  display.viewableContentWidth, display.contentHeight - display.viewableContentHeight
-
 function new(firstRun)
 	local resDir = system.ResourceDirectory
 	local docDir = system.DocumentsDirectory
 	local xmlFile = "ATAiPhoneRSS.xml"
 	local dataURL = "http://atasite.org/xml/".. xmlFile	
 	local detailScreen, detailDate, detailTitle, imageDir, lastDetailID, lastY
-	local doCheckForUpdate, connectionMade, newerXMLReady, dataWasUpdated
+	local doCheckForUpdate, connectionMade, newerXMLReady, dataWasUpdated, updateMsg
 
 	local data = {} 
 	local prevImages = {}
 	
-	local myList, detailScreen, detailScrollView, backBtn
+	local myList, detailScreen, detailScrollView, backBtn, detailScrollBar, detailBackground
 	
 	--Setup the main screen group
 	local g = display.newGroup()
@@ -31,7 +21,7 @@ function new(firstRun)
 		local t = data[detailID].eventDateValue .. data[detailID].eventInfoValue
 		detailDate = util.wrappedText( t, 52, 13, "Helvetica", {255,255,255} )       
 		detailDate.x = 12
-		detailDate.y = 60
+		detailDate.y = 0
 		detailScrollView:insert( detailDate )
 	
 		detailScrollView:remove(detailImage)
@@ -73,7 +63,7 @@ function new(firstRun)
 		detailScrollView:insert( titleLine )
 	
 		detailScrollView:remove(detailDescription)
-	    detailDescription = util.wrappedText(data[detailID].eventDescriptionValue, 44, 14, "Helvetica", {255,255,255} );
+	    detailDescription = util.wrappedText(data[detailID].eventDescriptionValue, 42, 14, "Helvetica", {255,255,255} );
 		detailDescription.x = detailDate.x
 		detailDescription.y = titleLine.y + 2
 		detailScrollView:insert( detailDescription )
@@ -81,9 +71,22 @@ function new(firstRun)
 		infoLine.y = detailDescription.y + math.floor(detailDescription.height) + 24
 		ATAlogoMid.y = math.floor(ATAlogoMid.height*0.5) + infoLine.y + 18 	
 		detailATAInfo.y = infoLine.y + 6
+
+		detailScrollView:remove(detailBackground)		
+		detailBackground = display.newRect(0, 0, screenW, detailScrollView.height + 24)
+		detailBackground:setFillColor(0,0,0)
+		detailScrollView:insert(1, detailBackground)	
+
+		if detailScrollView.height - 24 > screenH then
+			detailScrollView:addScrollBar( 255, 255, 255, 120 )
+		else 
+			detailScrollView:removeScrollBar()	
+		end
+		
+		detailBackground.y = detailBackground.height*0.5
 	
 		--detailScreen.x = calendarScreen.x + calendarScreen.width
-		detailScrollView.y = display.screenOriginY
+		detailScrollView.y = display.screenOriginY+60
 		g.detailID = detailID
 		
 	end
@@ -127,7 +130,7 @@ function new(firstRun)
 			default="boxBg.png",
 			over="boxBg_over.png",
 			onRelease=listButtonRelease,
-			top=display.screenOriginY + 60,
+			top=display.screenOriginY + 59,
 			bottom=72,
 			cat="categoryValue",
 			order=headers,
@@ -149,7 +152,7 @@ function new(firstRun)
 							t.x = 12 
 							t.y = 6
 						else
-							t = util.wrappedText( row.eventTitleValue, 26, 14, native.systemFontBold, {255,255,255} )
+							t = util.wrappedText( row.eventTitleValue, 22, 14, native.systemFontBold, {255,255,255} )
 							t.x = math.floor(row.group.width + 24) 
 							t.y = 24
 						end
@@ -225,7 +228,6 @@ function new(firstRun)
 			local ltn12 = require("ltn12")
 			http.request{ url = dataURL, sink = ltn12.sink.file(file) }
 					
-			doCheckForUpdate = true
 			dataWasUpdated = true
 		end
 	end
@@ -349,12 +351,13 @@ function new(firstRun)
 	local function setupDetailScreen()			
 		--setup a destination for the list items
 		detailScreen = display.newGroup()
-		detailScrollView = scrollView.new{ top=display.screenOriginY, bottom=80 }
+		detailScreen.y = 0
+		detailScrollView = scrollView.new{ top=display.screenOriginY+61, bottom=display.screenOriginY+48 }
 					
 		detailScreenTextBg = display.newImage( "gradientRectBg.png")
 		detailScrollView:insert( detailScreenTextBg )
 		detailScreenTextBg.x = screenW*0.5 
-		detailScreenTextBg.y = math.floor(detailScreenTextBg.height*0.5) + 57
+		detailScreenTextBg.y = math.floor(detailScreenTextBg.height*0.5) 
 		
 		infoLine = display.newRect( 12, 0, screenW-24, 1 ) 	
 		infoLine:setFillColor( 255, 255, 255 )
@@ -370,9 +373,9 @@ function new(firstRun)
 		detailATAInfo.x = ATAlogoMid.x + ATAlogoMid.width - detailATAInfo.width*0.5 + 24
 		detailScrollView:insert( detailATAInfo )
 	
-		local background = display.newRect(0, 0, screenW, detailScrollView.height)
-		background:setFillColor(0,0,0)
-		detailScrollView:insert(1, background)	
+		detailBackground = display.newRect(0, 0, screenW, detailScrollView.height + 24)
+		detailBackground:setFillColor(0,0,0)
+		detailScrollView:insert(1, detailBackground)	
 	
 		detailScreen:insert(detailScrollView)
 	
@@ -396,10 +399,6 @@ function new(firstRun)
 		navHeader.x = screenW*.5
 		navHeader.y = navBar.y
 		g:insert(navHeader)
-
-		local titleBottomLine = display.newRect( 0, 60, screenW, 1 ) 
-		titleBottomLine:setFillColor( 38, 38, 38 )
-		g:insert( titleBottomLine )
 	
 		backBtn = ui.newButton{ 
 			default="button-calendar.png", 
@@ -411,10 +410,26 @@ function new(firstRun)
 		backBtn.alpha = 0
 		g:insert(backBtn)
 	end	
+
+	local function showUpdateMessage()
+		local updateMsg = display.newGroup()
+	
+		local updateBg = display.newRect(0,0,screenW, screenH)
+		updateBg:setFillColor(0,0,0, 150)
+		updateMsg:insert(updateBg)
+		local updateTxt = display.newText("Checking for Update", 0, 0, native.systemFontBold, 16)
+		updateTxt:setTextColor(255,255,255)
+		updateMsg:insert(updateTxt)
+		updateTxt.x, updateTxt.y = screenW*0.5 , screenH*0.5-36
+		
+		return updateMsg
+	end
 		
 	local function setupLoop()
 		if remoteXMLNewer then
 			remoteXMLNewer = false
+						
+			updateMsg[2].text = "Updating XML"
 			
 			print("Updating XML...")
 			updateXML()			
@@ -433,7 +448,11 @@ function new(firstRun)
 				
 				print("Checking for update...")
 				checkForUpdate()
+	
+				updateMsg = showUpdateMessage()
 			else
+				updateMsg.isVisible = false
+							
 				--Remove the activity indicator
 				native.setActivityIndicator( false )
 
@@ -441,12 +460,14 @@ function new(firstRun)
 				Runtime:removeEventListener("enterFrame", setupLoop)				
 				
 				if dataWasUpdated then
-					print("data was updated recently")
+					print("data was updated!")
+					system.vibrate()
+	
 					myList.x = 0
 					detailScreen.x = detailScreen.width
 					backBtn.x = math.floor(backBtn.width*0.5)+backBtn.width
 					backBtn.alpha = 0
-					g.detailID = nil
+					g.detailID = nil					
 				else
 					if lastDetailID then
 							showDetails(lastDetailID)
@@ -465,7 +486,7 @@ function new(firstRun)
 		end
 
 	end	
-
+	
 	local function init()
 		doCheckForUpdate = true
 	    imageDir = docDir

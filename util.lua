@@ -65,7 +65,7 @@ function wrappedText(str, limit, size, font, color, indent, indent1)
 		local t = display.newText( arr[i], 0, 0, font, size )    
 		t:setTextColor( color[1], color[2], color[3] )
 		t.x = math.floor(t.width/2)
-		t.y = (size*1.3)*(i-1)
+		t.y = math.floor((size*1.3)*(i-1))
 		g:insert(t)
 		i = i + 1
 	end

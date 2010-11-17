@@ -3,9 +3,16 @@
 -- Created by Gilbert Guerrero, http://ggnmd.com
 
 --import external classes
-local ui = require("ui")
-local util = require("util")
-local viewController = require("viewController")
+ui = require("ui")
+util = require("util")
+tableView = require("tableView")
+scrollView = require("scrollView")
+viewController = require("viewController")
+
+--initial values
+screenW, screenH = display.contentWidth, display.contentHeight
+viewableScreenW, viewableScreenH = display.viewableContentWidth, display.viewableContentHeight
+screenOffsetW, screenOffsetH = display.contentWidth -  display.viewableContentWidth, display.contentHeight - display.viewableContentHeight
 
 local mainView, tabView, currentScreen, lastScreen, lastDetailID, lastY, tabBar
 local firstRun = true
