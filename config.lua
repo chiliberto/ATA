@@ -6,6 +6,12 @@ application =
 	{
 		width = 320,
 		height = 480,
-		scale = "letterbox"
+		scale = "letterbox",
+		antialias = true,
+		
+		imageSuffix =
+		{
+			["@2x"] = 2,
+		},
 	},
 }

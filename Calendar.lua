@@ -453,8 +453,10 @@ function new(firstRun)
 			else
 				updateMsg.isVisible = false
 							
-				--Remove the activity indicator
-				native.setActivityIndicator( false )
+				if system.getInfo("platformName") ~= "Android" then
+					--Remove the activity indicator
+					native.setActivityIndicator( false )
+				end
 
 				print("Setup done!")
 				Runtime:removeEventListener("enterFrame", setupLoop)				
@@ -498,8 +500,10 @@ function new(firstRun)
 		setupCalendarList()	
 
 		if firstRun then		
-			-- Start the activity indicator
-			native.setActivityIndicator( true )			
+			if system.getInfo("platformName") ~= "Android" then
+				-- Start the activity indicator
+				native.setActivityIndicator( true )			
+			end		
 		
 			--Start the setup loop
 			Runtime:addEventListener("enterFrame", setupLoop)
@@ -523,8 +527,10 @@ function new(firstRun)
 	end
 	
 	function g:cleanUp()
-		--Remove the activity indicator
-		native.setActivityIndicator( false )
+		if system.getInfo("platformName") ~= "Android" then
+			--Remove the activity indicator
+			native.setActivityIndicator( false )
+		end
 
 		myList:cleanUp()
 		detailScrollView:cleanUp()

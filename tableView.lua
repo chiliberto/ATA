@@ -1,6 +1,6 @@
 -- tableView.lua, Table View Library
 --
--- Version 1.3
+-- Version 1.5
 --
 -- Copyright (C) 2010 ANSCA Inc. All Rights Reserved.
 --
@@ -80,6 +80,10 @@ function newListItemHandler(self, event)
                 startTime = system.getTimer()
                 Runtime:addEventListener( "enterFrame", showHighlight )
             end
+
+			if self.onPress then
+				result = self.onPress( event )
+			end
              
         elseif( self.isFocus ) then
  
@@ -138,6 +142,7 @@ function newListItem(params)
         local data = params.data
         local default = params.default
         local over = params.over
+        local onPress = params.onPress
         local onRelease = params.onRelease
         local top = params.top
         local bottom = params.bottom
@@ -163,6 +168,7 @@ function newListItem(params)
  
         thisItem.id = id
         thisItem.data = data
+        thisItem.onPress = onPress          
         thisItem.onRelease = onRelease          
         thisItem.top = top
         thisItem.bottom = bottom
@@ -181,6 +187,7 @@ function newList(params)
         local data = params.data
         local default = params.default
         local over = params.over
+        local onPress = params.onPress
         local onRelease = params.onRelease
         local top = params.top or 20
         local bottom = params.bottom or 48
@@ -271,23 +278,48 @@ function newList(params)
 	            prevY = g.y
 	            prevH = g.height
 	            table.insert(c, g)           
-	            c[#c].yInit = g.y     
+	            c[#c].yInit = g.y	            
 	        end
-        	        	
+        	 
+            local firstItem = true
+            local lastItem = false             	
+	        local defaultVal = default
+	        local overVal = over
+	        
 	        --iterate over the data and add items to the list view
 	        for i=1, #data do
-	        	if data[i][cat] == h then  
+	        	
+	        	if data[i][cat] == h then
+	        	
+	        		if i == #data then
+	        			lastItem = true
+	        		elseif (h ~= "" and data[i+1][cat] ~= h) then
+	        			lastItem = true
+	        		end
+
+					local firstImg = system.pathForFile( string.gsub(default, ".png", "_first.png"), system.ResourceDirectory )
+					local lastImg = system.pathForFile( string.gsub(default, ".png", "_last.png"), system.ResourceDirectory )
+	        		if firstItem and firstImg then
+						defaultVal = string.gsub(default, ".png", "_first.png")
+						firstItem = false
+	        		elseif lastItem and lastImg then
+						defaultVal = string.gsub(default, ".png", "_last.png")
+	        		else
+	        			defaultVal = default
+	        		end 
+	        			        		  
  	                local thisItem = newListItem{
 	                    data = data[i],
-	                    default = default,
-	                    over = over,
+	                    default = defaultVal,
+	                    over = overVal,
+						onPress = onPress,
 	                    onRelease = onRelease,
 	                    top = top,
 	                    bottom = bottom,
 	                    callback = callback,
 	                    id = i
 	                }
-	 
+	                
 	                listView:insert( 1, thisItem )     
 	 
 	                thisItem.x = 0 + screenOffsetW*.5
@@ -320,12 +352,56 @@ function newList(params)
         
         currentTarget = listView
 
+		function listView:addOnTop(object, xVal, yVal)
+			for i=1,self.numChildren do
+				self[i].y = self[i].y + object.height
+			end	
+			self:insert(object)
+			object.x = xVal or 0
+			object.y = yVal or 0
+		end
+
+		function listView:addOnBottom(object, xVal, yVal)
+			self:insert(object)
+			object.x = xVal or 0
+			object.y = yVal or self[self.numChildren].y + self[self.numChildren].height
+		end
+
+		function onScrollTo(event)
+			local timePassed = event.time - lastTime
+			lastTime = lastTime + timePassed  
+			
+            velocity = 1
+			if currentTarget.y <= currentTarget.yVal then
+        		currentTarget.y = math.floor(currentTarget.y + velocity*timePassed)  
+        		moveCat()   
+        		print(currentTarget.y)
+			else 
+	            currentTarget.y = currentTarget.yVal
+	            Runtime:removeEventListener("enterFrame", onScrollTo )          
+			end
+		end
+				
+		function listView:scrollTo(yVal, timeVal)
+            local timeVal = timeVal or 300
+            local yVal = yVal or 0
+            
+            self.yVal = yVal
+
+            Runtime:removeEventListener("enterFrame", scrollList )          
+            Runtime:addEventListener("enterFrame", moveCat )          
+
+            --lastTime = system.getTimer()
+            --Runtime:addEventListener("enterFrame", onScrollTo )          
+            self.tween = transition.to(self, { time=timeVal, y=yVal, transition=easing.outQuad})						
+		end
+		
 		function listView:cleanUp()
 			print("tableView cleanUp")
-			Runtime:removeEventListener("enterFrame", moveCat )
-			Runtime:removeEventListener("enterFrame", scrollList )
-            Runtime:removeEventListener( "enterFrame", showHighlight )
+			Runtime:removeEventListener("enterFrame", scrollList)
+            Runtime:removeEventListener("enterFrame", showHighlight)
  			Runtime:removeEventListener("enterFrame", trackVelocity)
+			Runtime:removeEventListener("enterFrame", moveCat)
 			local i
 			for i = listView.numChildren, 1, -1 do
 				--test
@@ -379,6 +455,7 @@ function scrollList(event)
 end
 
 function moveCat()
+	if currentTarget.y then
         local upperLimit = currentTarget.top 
 
 		for i=1, #currentTarget.c do
@@ -398,6 +475,7 @@ function moveCat()
 		end
 		
 		return true
+	end
 end
 
 function trackVelocity(event) 	
