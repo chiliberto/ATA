@@ -12,6 +12,12 @@ function new(firstRun)
 	local prevImages = {}
 	
 	local myList, detailScreen, detailScrollView, backBtn, detailScrollBar, detailBackground
+	local statusBarH = display.statusBarHeight
+	if system.getInfo("platformName") == "Android" then
+		statusBarH = 0
+	end
+	local navBarH = 39
+	local topBoundary = display.screenOriginY + statusBarH +  navBarH 
 	
 	--Setup the main screen group
 	local g = display.newGroup()
@@ -86,7 +92,7 @@ function new(firstRun)
 		detailBackground.y = detailBackground.height*0.5
 	
 		--detailScreen.x = calendarScreen.x + calendarScreen.width
-		detailScrollView.y = display.screenOriginY+60
+		detailScrollView.y = topBoundary
 		g.detailID = detailID
 		
 	end
@@ -130,7 +136,7 @@ function new(firstRun)
 			default="boxBg.png",
 			over="boxBg_over.png",
 			onRelease=listButtonRelease,
-			top=display.screenOriginY + 59,
+			top=topBoundary,
 			bottom=72,
 			cat="categoryValue",
 			order=headers,
@@ -352,7 +358,7 @@ function new(firstRun)
 		--setup a destination for the list items
 		detailScreen = display.newGroup()
 		detailScreen.y = 0
-		detailScrollView = scrollView.new{ top=display.screenOriginY+61, bottom=display.screenOriginY+48 }
+		detailScrollView = scrollView.new{ top=topBoundary, bottom=display.screenOriginY+48 }
 					
 		detailScreenTextBg = display.newImage( "gradientRectBg.png")
 		detailScrollView:insert( detailScreenTextBg )
@@ -384,7 +390,7 @@ function new(firstRun)
 	end
 	
 	local function setupNav()	
-		local headerBg = display.newRect(0,0,screenW,display.statusBarHeight)
+		local headerBg = display.newRect(0,0,screenW, statusBarH)
 		headerBg:setFillColor(0,0,0)
 		headerBg.y = math.floor(display.screenOriginY + headerBg.height*0.5)
 		g:insert(headerBg)

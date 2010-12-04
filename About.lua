@@ -1,10 +1,17 @@
 module(..., package.seeall)
 
 function new(param)
+	local statusBarH = display.statusBarHeight
+	if system.getInfo("platformName") == "Android" then
+		statusBarH = 0
+	end
+	local navBarH = 39
+	local topBoundary = display.screenOriginY + statusBarH +  navBarH 
+
 	local g = display.newGroup()
 
 	-- Setup a scrollable content group
-	local scrollView = scrollView.new{ top=display.screenOriginY+60, bottom=display.screenOriginY+48 }
+	local scrollView = scrollView.new{ top=topBoundary, bottom=display.screenOriginY+48 }
 			
 	--#Setup the About screen
 	local aboutBg = display.newImage( "gradientRectBg.png" )
@@ -55,7 +62,7 @@ function new(param)
 
 	g:insert(scrollView)
 
-	local headerBg = display.newRect(0,0,screenW,display.statusBarHeight)
+	local headerBg = display.newRect(0,0,screenW,statusBarH)
 	g:insert(headerBg)
 	headerBg:setFillColor(0,0,0)
 	headerBg.y = math.floor(display.screenOriginY + headerBg.height*0.5)
