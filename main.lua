@@ -1,5 +1,5 @@
 -- ATA iPhone App
--- Version 1.1
+-- Version 1.2
 -- Created by Gilbert Guerrero, http://ggnmd.com
 
 --import external classes
@@ -8,6 +8,12 @@ util = require("util")
 tableView = require("tableView")
 scrollView = require("scrollView")
 viewController = require("viewController")
+require("analytics")
+
+-- Get my Flurry API key from an external file
+analyticsAPIKey = require("analyticsAPIKey")
+appKey = analyticsAPIKey.getKey()
+analytics.init(appKey)
 
 --initial values
 screenW, screenH = display.contentWidth, display.contentHeight
